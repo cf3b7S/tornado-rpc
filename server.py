@@ -1,15 +1,16 @@
-# import tornado
 from tornado.ioloop import IOLoop
-from tcp import TCPServer
+from tornado import tcpserver
 import msgpack
 import time
 
 
-class Handler(object):
-    def sum(self, a, b):
-        time.sleep(2)
-        print 'sum', a, b, a + b
-        return a + b
+class TCPServer(tcpserver.TCPServer):
+    def __init__(self, callback):
+        super(TCPServer, self).__init__()
+        self.callback = callback
+
+    def handle_stream(self, stream, address):
+        self.callback(stream, address)
 
 
 class Server():
@@ -43,42 +44,12 @@ class Server():
 
 
 if __name__ == '__main__':
+    class Handler(object):
+        def sum(self, a, b):
+            time.sleep(2)
+            print 'sum', a, b, a + b
+            return a + b
+
     server = Server(Handler())
     server.bind()
     server.start()
-
-
-
-
-
-# class TCP(TCPServer):
-#     def __init__(self):
-
-#     def handle_stream(self, stream, address):
-#         print stream, address
-#         stream.read_until('\n', log)
-#         stream.write('Done')
-#         stream.read_until('\n', log)
-#         stream.write('Done')
-
-# def connection_ready(sock, fd, events):
-#     while True:
-#         try:
-#             connection, address = sock.accept()
-#         except socket.error as e:
-#             if e.args[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):
-#                 raise
-#             return
-#         connection.setblocking(0)
-#         handle_connection(connection, address)
-
-# server = Server()
-# server.bind(8888)
-# server.start(2)  # Forks multiple sub-processes
-
-# io_loop = IOLoop.current()
-# callback = functools.partial(connection_ready, sock)
-# io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
-# io_loop.start()
-
-# # IOLoop.current().start()

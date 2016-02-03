@@ -15,7 +15,7 @@ msg = msgpack.packb(('sum', msg))
 # method
 
 # s.sendall(msg)
-s.sendall(msg + 'a')
+s.sendall(msg)
 
 data = s.recv(1024)
 print 'Received', repr(data)

@@ -1,2 +1,2 @@
 # tornado-rpc
-rpc base on tornado tcp server
+rpc base on tornado tcp server.

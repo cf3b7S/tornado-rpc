@@ -29,12 +29,12 @@ class Server():
     def start(self, process=2):
         self.process = process
         self.tcp_server.start(process)
-        self.loop = IOLoop.current()
-        self.loop.start()
+        # self.loop = IOLoop.current()
+        # self.loop.start()
 
     def handle_stream(self, stream, address):
-        netutils.recv(stream, callback=lambda data: self.handle_line(data, stream))
-        # stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))
+        # netutils.recv(stream, callback=lambda data: self.handle_line(data, stream))
+        stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
@@ -64,7 +64,8 @@ class Server():
             result = getattr(self.handler, method)(*params)
             return send_msg(config.SUCCESS, result=result)
         elif mode == config.ASYNC_MODE:
-            self.loop.add_callback(getattr(self.handler, method), *params)
+            # self.loop.add_callback(getattr(self.handler, method), *params)
+            IOLoop.current().add_callback(getattr(self.handler, method), *params)
             return send_msg(config.SUCCESS)
         else:
             return send_msg(config.MODE_INVALID)

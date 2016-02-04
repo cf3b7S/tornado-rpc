@@ -55,16 +55,19 @@ class Server():
         if not hasattr(self.handler, data['method']):
             return send_msg(config.METHOD_INVALID)
 
+        mode = data['mode']
+        method = data['method']
+        params = data['params']
         if mode == config.SYNC_MODE:
             result = getattr(self.handler, method)(*params)
-            return send_msg(config.SUCCESS, result)
+            return send_msg(config.SUCCESS, result=result)
         elif mode == config.ASYNC_MODE:
             self.loop.add_callback(getattr(self.handler, method), *params)
             return send_msg(config.SUCCESS)
         else:
             return send_msg(config.MODE_INVALID)
 
-    def send_msg(self, msg, result=None, stream):
+    def send_msg(self, msg, stream, result=None):
         if result:
             msg[1] = result
         stream.write(msgpack.packb(msg))

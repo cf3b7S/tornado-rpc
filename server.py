@@ -4,6 +4,7 @@ from tornado import tcpserver
 import msgpack
 import config
 import time
+import netutils
 
 
 class TCPServer(tcpserver.TCPServer):
@@ -31,7 +32,8 @@ class Server():
         self.loop.start()
 
     def handle_stream(self, stream, address):
-        stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))
+        netutils.recv(stream, callback=lambda data: self.handle_line(data, stream))
+        # stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
@@ -52,7 +54,8 @@ class Server():
             send_msg(config.UNPACK_ERROR)
 
     def send_msg(self, msg, stream):
-        stream.write(msgpack.packb(msg))
+        netutils.send(stream, msg)
+        # stream.write(msgpack.packb(msg))
 
 
 if __name__ == '__main__':

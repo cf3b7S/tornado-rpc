@@ -1,27 +1,58 @@
 import socket
+import struct
+import config
 import time
+import netutils
 import msgpack
+from tornado import iostream
 
+class Client(object):
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(('127.0.0.1', 8000))
+    def __init__(self, sock=None, io_loop=None, max_buffer_size=None, read_chunk_size=None, max_write_buffer_size=None):
+        if not sock:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.stream = iostream.IOStream(sock, io_loop, max_buffer_size, read_chunk_size, max_write_buffer_size)
+        self.mode = config.SYNC_MODE
 
+    def connection(self, host='127.0.0.1', port=8000, callback=None, server_hostname=None):
+        self.stream.connect((host, port), callback=None, server_hostname=None)
 
-# msg = ["request", "3", {"adlist": ["h.10"], "x": {"pub_id": "xxx", "pub_type": "xxx", "uid": "xxx", "ip": "8.8.8.8", "ua": "Mozilla/5.0 (Macintosh", " Intel Mac OS X 10_11_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36": "", "category": "80203", "country": "GOOGLE", "province": "GOOGLE", "day_of_week": "2", "time_period": "2", "url_domain": "stock.qq.com", "url_path": "stock.qq.com/original/zqyjy/s591.html", "browser": "Other", "browser_version": "Other", "os": "Other", "os_version": "Other"}, "query": {"pub_id": "xxx", "pub_type": "xxx", "uid": "xxx", "ip": "8.8.8.8", "ua": "Mozilla/5.0 (Macintosh", " Intel Mac OS X 10_11_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36": "", "url": "http://stock.qq.com/original/zqyjy/s591.html", "category": "80203"}, "time": 1454475352.597586}]
-# msg = msgpack.packb(('method', msg))
-msg = [1, 4]
-msg = msgpack.packb(('sum', msg, 2))
+    def setSync(self):
+        self.mode = config.SYNC_MODE
 
-# method
+    def setAsync(self):
+        self.mode = config.ASYNC_MODE
 
-# s.sendall(msg)
-s.sendall(msg + 'a')
+    def recv(self):
+        netutils.recv(self.stream)
+        # raw_msg = self._recv_all(4)
+        # len_msg = struct.unpack('>I', raw_msg)[0]
+        # msg = self._recv_all(len_msg)
+        # data = msgpack.unpackb(msg)
+        # return data
 
-data = s.recv(1024)
-data = msgpack.unpackb(data)
-print 'Received', repr(data)
+    def _recv_all(self, length):
+        msg = ''
+        while len(msg) < length:
+            print length - len(msg)
+            packet = self.socket.recv(length - len(msg))
+            print packet
+            # if not packet:
+            #     return None
+            msg += packet
+        return msg
 
-time.sleep(10)
-s.close()
+    def send(self, method, data):
+        msg = msgpack.packb((method, data, self.mode))
+        # msg = struct.pack('>I', len(msg)) + msg
+        self.socket.sendall(msg)
 
-# print stream
+    def close(self):
+        self.socket.close()
+
+if __name__ == '__main__':
+    client = Client()
+    client.connection()
+    client.send('sum', [1, 2])
+    print client.recv()
+    client.close()

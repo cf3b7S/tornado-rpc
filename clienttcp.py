@@ -1,6 +1,5 @@
-import socket
-import time
-import msgpack
+import netutils
+import config
 from tornado import tcpclient
 from tornado import gen
 from tornado.ioloop import IOLoop
@@ -11,6 +10,7 @@ class Client():
         self.host = '127.0.0.1'
         self.port = 8000
         self.tcpClient = tcpclient.TCPClient()
+        self.mode = config.SYNC_MODE
 
     @gen.coroutine
     def _connect(self):
@@ -23,22 +23,23 @@ class Client():
         self.loop = IOLoop.current()
         self.loop.start()
 
-    def send(self, msg, cb):
+    def send(self, method_name, params):
         msg = {
             'msgid': 123,
-            'method': 'sum',
-            'params': [1, 2],
-            'mode': 1,
+            'method': method_name,
+            'params': params,
+            'mode': self.mode
         }
-        self.stream.write(msgpack.packb(msg))
-        self.recv(cb)
-
-    def _recv(self, data, cb):
-        data = msgpack.unpackb(data)
-        cb(data)
+        netutils.send(self.stream, msg)
 
     def recv(self, cb):
-        self.stream.read_until_close(streaming_callback=lambda data: self._recv(data, cb))
+        netutils.recv(self.stream, cb)
+
+    def setSync(self):
+        self.mode = config.SYNC_MODE
+
+    def setAsync(self):
+        self.mode = config.ASYNC_MODE
 
 
 if __name__ == '__main__':
@@ -46,12 +47,6 @@ if __name__ == '__main__':
         print data
     client = Client()
     client.connect('127.0.0.1', 8000)
-    client.send('12312', cb)
+    client.send('sum', [1, 2])
+    client.recv(cb)
     client.start()
-
-# msg = msgpack.packb({
-#     'msgid': 123,
-#     'method': 'sum',
-#     'params': msg,
-#     'mode': 1,
-# })

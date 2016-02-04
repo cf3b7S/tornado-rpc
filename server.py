@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from functools import partial
 from tornado.ioloop import IOLoop
 from tornado import tcpserver
@@ -36,22 +37,36 @@ class Server():
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
         try:
-            method, params, mode = msgpack.unpackb(data)
-            if not hasattr(self.handler, method):
-                send_msg(config.METHOD_MISS)
-            else:
-                if mode == config.SYNC_MODE:
-                    res = getattr(self.handler, method)(*params)
-                    send_msg([config.SUCCESS[0], res])
-                elif mode == config.ASYNC_MODE:
-                    self.loop.add_callback(getattr(self.handler, method), *params)
-                    send_msg(config.SUCCESS)
-                else:
-                    send_msg(config.MODE_INVALID)
+            data = msgpack.unpackb(data)
         except:
-            send_msg(config.UNPACK_ERROR)
+            return send_msg(config.UNPACK_ERROR)
 
-    def send_msg(self, msg, stream):
+        # handle key miss error
+        keyMissError = None
+        for key in config.keyMissMap:
+            if keyMissError:
+                return
+            if key not in data:
+                keyMissError = config.keyMissMap[key]
+        if keyMissError:
+            return send_msg(keyMissError)
+
+        # handle method invalid
+        if not hasattr(self.handler, data['method']):
+            return send_msg(config.METHOD_INVALID)
+
+        if mode == config.SYNC_MODE:
+            result = getattr(self.handler, method)(*params)
+            return send_msg(config.SUCCESS, result)
+        elif mode == config.ASYNC_MODE:
+            self.loop.add_callback(getattr(self.handler, method), *params)
+            return send_msg(config.SUCCESS)
+        else:
+            return send_msg(config.MODE_INVALID)
+
+    def send_msg(self, msg, result=None, stream):
+        if result:
+            msg[1] = result
         stream.write(msgpack.packb(msg))
 
 

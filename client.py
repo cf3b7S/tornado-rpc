@@ -11,6 +11,12 @@ s.connect(('127.0.0.1', 8000))
 # msg = msgpack.packb(('method', msg))
 msg = [1, 4]
 msg = msgpack.packb(('sum', msg, 2))
+msg = msgpack.packb({
+    'msgid': 123,
+    'method': 'sum',
+    'params': msg,
+    'mode': 1,
+})
 
 # method
 
@@ -23,5 +29,3 @@ print 'Received', repr(data)
 
 time.sleep(10)
 s.close()
-
-# print stream

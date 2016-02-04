@@ -20,15 +20,15 @@ class TCPServer(tcpserver.TCPServer):
 class Server():
     def __init__(self, handler):
         self.handler = handler
-        self.tcpServer = TCPServer(self.handle_stream)
+        self.tcp_server = TCPServer(self.handle_stream)
 
     def bind(self, port=8000):
         self.port = port
-        self.tcpServer.bind(self.port)
+        self.tcp_server.bind(self.port)
 
     def start(self, process=2):
         self.process = process
-        self.tcpServer.start(process)
+        self.tcp_server.start(process)
         self.loop = IOLoop.current()
         self.loop.start()
 
@@ -44,14 +44,14 @@ class Server():
             return send_msg(config.UNPACK_ERROR)
 
         # handle key miss error
-        keyMissError = None
+        key_miss_error = None
         for key in config.keyMissMap:
-            if keyMissError:
+            if key_miss_error:
                 return
             if key not in data:
-                keyMissError = config.keyMissMap[key]
-        if keyMissError:
-            return send_msg(keyMissError)
+                key_miss_error = config.keyMissMap[key]
+        if key_miss_error:
+            return send_msg(key_miss_error)
 
         # handle method invalid
         if not hasattr(self.handler, data['method']):

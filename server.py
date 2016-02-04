@@ -2,7 +2,6 @@
 from functools import partial
 from tornado.ioloop import IOLoop
 from tornado import tcpserver
-import msgpack
 import config
 import time
 import netutils
@@ -29,19 +28,17 @@ class Server():
     def start(self, process=2):
         self.process = process
         self.tcpServer.start(process)
-        self.loop = IOLoop.current()
-        self.loop.start()
 
     def handle_stream(self, stream, address):
         netutils.recv(stream, callback=lambda data: self.handle_line(data, stream))
-        # stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))
+        # stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))]
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
-        try:
-            data = msgpack.unpackb(data)
-        except:
-            return send_msg(config.UNPACK_ERROR)
+        # try:
+        #     data = msgpack.unpackb(data)
+        # except:
+        #     return send_msg(config.UNPACK_ERROR)
 
         # handle key miss error
         keyMissError = None
@@ -64,19 +61,20 @@ class Server():
             result = getattr(self.handler, method)(*params)
             return send_msg(config.SUCCESS, result=result)
         elif mode == config.ASYNC_MODE:
-            self.loop.add_callback(getattr(self.handler, method), *params)
+            IOLoop.current().add_callback(getattr(self.handler, method), *params)
             return send_msg(config.SUCCESS)
         else:
             return send_msg(config.MODE_INVALID)
 
+    # def send_msg(self, msg, stream, result=None):
+    #     if result:
+    #         msg[1] = result
+    #     stream.write(msgpack.packb(msg))
+
     def send_msg(self, msg, stream, result=None):
         if result:
             msg[1] = result
-        stream.write(msgpack.packb(msg))
-
-    # def send_msg(self, msg, stream):
-    #     netutils.send(stream, msg)
-    #     # stream.write(msgpack.packb(msg))
+        netutils.send(stream, msg)
 
 if __name__ == '__main__':
     class Handler(object):
@@ -88,3 +86,4 @@ if __name__ == '__main__':
     server = Server(Handler())
     server.bind()
     server.start()
+    IOLoop.current().start()

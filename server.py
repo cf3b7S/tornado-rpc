@@ -27,7 +27,7 @@ class Server():
 
     def start(self, process=2):
         self.process = process
-        self.tcpServer.start(process)
+        self.tcp_server.start(process)
 
     def handle_stream(self, stream, address):
         netutils.recv(stream, callback=lambda data: self.handle_line(data, stream))

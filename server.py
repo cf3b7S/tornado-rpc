@@ -35,51 +35,62 @@ class Server():
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
-        # try:
-        #     data = msgpack.unpackb(data)
-        # except:
-        #     return send_msg(config.UNPACK_ERROR)
+        msgid = data['msgid']
+        mode = data['mode']
+        method = data['method']
+        params = data['params']
 
+        result = {
+            'msgid': msgid,
+            'result': None,
+            'code': None,
+            'msg': None
+        }
         # handle key miss error
         key_miss_error = None
         for key in config.keyMissMap:
             if key_miss_error:
-                return
+                break
             if key not in data:
                 key_miss_error = config.keyMissMap[key]
         if key_miss_error:
-            return send_msg(key_miss_error)
+            result['code'] = key_miss_error[0]
+            result['msg'] = key_miss_error[1]
+            return send_msg(result)
 
         # handle method invalid
         if not hasattr(self.handler, data['method']):
-            return send_msg(config.METHOD_INVALID)
+            result['code'] = config.METHOD_INVALID[0]
+            result['msg'] = config.METHOD_INVALID[1]
+            return send_msg(result)
 
-        mode = data['mode']
-        method = data['method']
-        params = data['params']
         if mode == config.SYNC_MODE:
-            result = getattr(self.handler, method)(*params)
-            return send_msg(config.SUCCESS, result=result)
+            method_result = getattr(self.handler, method)(*params)
+            result['code'] = config.SUCCESS[0]
+            result['msg'] = config.SUCCESS[1]
+            result['result'] = method_result
+            return send_msg(result)
         elif mode == config.ASYNC_MODE:
             IOLoop.current().add_callback(getattr(self.handler, method), *params)
-            return send_msg(config.SUCCESS)
+            result['code'] = config.SUCCESS[0]
+            result['msg'] = config.SUCCESS[1]
+            return send_msg(result)
         else:
-            return send_msg(config.MODE_INVALID)
+            result['code'] = config.MODE_INVALID[0]
+            result['msg'] = config.MODE_INVALID[1]
+            return send_msg(result)
 
     # def send_msg(self, msg, stream, result=None):
     #     if result:
     #         msg[1] = result
     #     stream.write(msgpack.packb(msg))
 
-    def send_msg(self, msg, stream, result=None):
-        if result:
-            msg[1] = result
+    def send_msg(self, msg, stream):
         netutils.send(stream, msg)
 
 if __name__ == '__main__':
     class Handler(object):
         def sum(self, a, b):
-            time.sleep(2)
             print 'sum', a, b, a + b
             return a + b
 

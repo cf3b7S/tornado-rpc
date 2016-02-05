@@ -1,5 +1,7 @@
 import msgpack
 import struct
+import config
+import sys
 
 
 def send(stream, data):
@@ -10,12 +12,13 @@ def send(stream, data):
 
 def recv(stream, callback):
     def read_msg(raw_msg):
-        print 'read_msg'
         len_msg = struct.unpack('>I', raw_msg)[0]
 
         def handle_msg(msg):
-            print 'handle_msg'
-            data = msgpack.unpackb(msg)
+            try:
+                data = msgpack.unpackb(msg)
+            except:
+                print >>sys.stderr, "WARNING:", config.UNPACK_ERROR, msg
             callback(data)
 
         stream.read_bytes(len_msg, streaming_callback=handle_msg, partial=True)

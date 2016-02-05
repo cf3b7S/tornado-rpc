@@ -3,7 +3,6 @@ from functools import partial
 from tornado.ioloop import IOLoop
 from tornado import tcpserver
 import config
-import time
 import netutils
 
 

@@ -29,6 +29,7 @@ class Server():
         self.tcp_server.start(process)
 
     def handle_stream(self, stream, address):
+        print 'handle_stream'
         netutils.recv(stream, callback=lambda data: self.handle_line(data, stream))
         # stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))]
 
@@ -38,7 +39,7 @@ class Server():
         mode = data['mode']
         method = data['method']
         params = data['params']
-
+        print 'handle_line:', msgid
         result = {
             'msgid': msgid,
             'result': None,
@@ -86,6 +87,7 @@ class Server():
 
     def send_msg(self, msg, stream):
         netutils.send(stream, msg)
+        netutils.send(stream, msg, lambda: stream.close())
 
 if __name__ == '__main__':
     class Handler(object):

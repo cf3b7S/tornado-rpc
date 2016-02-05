@@ -72,6 +72,7 @@ class Server():
     #     stream.write(msgpack.packb(msg))
 
     def send_msg(self, msg, stream, result=None):
+        msg = msg[:]
         if result:
             msg[1] = result
         netutils.send(stream, msg)

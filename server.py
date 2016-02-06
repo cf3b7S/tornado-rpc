@@ -4,6 +4,7 @@ from tornado.ioloop import IOLoop
 from tornado import tcpserver
 import config
 import netutils
+import os
 
 
 class TCPServer(tcpserver.TCPServer):
@@ -39,7 +40,7 @@ class Server():
         mode = data['mode']
         method = data['method']
         params = data['params']
-        print 'handle_line:', msgid
+        print 'handle_line:', msgid, os.getpid()
         result = {
             'msgid': msgid,
             'result': None,

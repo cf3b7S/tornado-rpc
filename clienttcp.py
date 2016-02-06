@@ -4,6 +4,7 @@ from tornado import tcpclient
 from tornado import gen
 from tornado.ioloop import IOLoop
 import time
+import os
 
 
 class Client():
@@ -19,8 +20,6 @@ class Client():
         self.host = host
         self.port = port
         IOLoop.current().run_sync(self._connect)
-        # TODO when connection has been disconnected, connect server
-        # self.stream.set_close_callback(lambda: IOLoop.current().run_sync(self._connect))
 
     def call(self, method_name, params, cb):
         msg = {
@@ -29,7 +28,7 @@ class Client():
             'params': params,
             'mode': self.mode
         }
-        print 'send msgid:', msg['msgid']
+        print 'send msgid:', msg['msgid'], os.getpid()
         netutils.send(self.stream, msg)
 
         def recv_cb(data):
@@ -37,10 +36,10 @@ class Client():
             cb(data)
         netutils.recv(self.stream, recv_cb)
 
-    def setSync(self):
+    def set_sync(self):
         self.mode = config.SYNC_MODE
 
-    def setAsync(self):
+    def set_async(self):
         self.mode = config.ASYNC_MODE
 
     def close(self):
@@ -62,19 +61,28 @@ generator = msgid_generator()
 def cb1(data):
     print 'cb1:', data
 
+
+def test():
+    start = time.time()
+    for i in xrange(10000):
+        # ts = time.time()
+        client = Client()
+        client.set_async()
+        client.connect('127.0.0.1', 8000)
+        client.call('sum', [i, i+1], cb1)
+        # data = client.call('sum', [i, i+1])
+        # print data
+        # te = time.time()
+        # print te-ts
+    end = time.time()
+    print end - start
+
 if __name__ == '__main__':
 
     def cb2(data):
         print 'cb2:', data
     # client.connect('127.0.0.1', 8000)
-
-    for i in xrange(10000):
-        ts = time.time()
-        client = Client()
-        client.connect('127.0.0.1', 8000)
-        client.call('sum', [i, i+1], cb1)
-        te = time.time()
-        print te-ts
+    test()
 
     IOLoop.current().start()
     # client.start()

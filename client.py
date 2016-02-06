@@ -1,21 +1,42 @@
-import socket
-import struct
-import config
-import time
+# -*- coding: utf-8 -*-
 import netutils
-import msgpack
-from tornado import iostream, ioloop
+import config
+from tornado import tcpclient
+from tornado import gen
+from tornado.ioloop import IOLoop
+import time
 
-class Client(object):
 
-    def __init__(self, sock=None, io_loop=None, max_buffer_size=None, read_chunk_size=None, max_write_buffer_size=None):
-        if not sock:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream = iostream.IOStream(sock, io_loop, max_buffer_size, read_chunk_size, max_write_buffer_size)
+class Client():
+    def __init__(self):
+        self.tcpClient = tcpclient.TCPClient()
         self.mode = config.SYNC_MODE
 
-    def connection(self, host='127.0.0.1', port=8000, callback=None, server_hostname=None):
-        self.stream.connect((host, port))
+    @gen.coroutine
+    def _connect(self):
+        self.stream = yield self.tcpClient.connect(self.host, self.port)
+
+    def connect(self, host, port):
+        self.host = host
+        self.port = port
+        IOLoop.current().run_sync(self._connect)
+        # TODO when connection has been disconnected, connect server
+        # self.stream.set_close_callback(lambda: IOLoop.current().run_sync(self._connect))
+
+    def call(self, method_name, params, cb):
+        msg = {
+            'msgid': next(generator),
+            'method': method_name,
+            'params': params,
+            'mode': self.mode
+        }
+        print 'send msgid:', msg['msgid']
+        netutils.send(self.stream, msg)
+
+        def recv_cb(data):
+            self.stream.close()
+            cb(data)
+        netutils.recv(self.stream, recv_cb)
 
     def setSync(self):
         self.mode = config.SYNC_MODE
@@ -23,44 +44,38 @@ class Client(object):
     def setAsync(self):
         self.mode = config.ASYNC_MODE
 
-    def recv(self, callback):
-        netutils.recv(self.stream, callback)
-        # raw_msg = self._recv_all(4)
-        # len_msg = struct.unpack('>I', raw_msg)[0]
-        # msg = self._recv_all(len_msg)
-        # data = msgpack.unpackb(msg)
-        # return data
-
-    # def _recv_all(self, length):
-    #     msg = ''
-    #     while len(msg) < length:
-    #         print length - len(msg)
-    #         packet = self.socket.recv(length - len(msg))
-    #         print packet
-    #         # if not packet:
-    #         #     return None
-    #         msg += packet
-    #     return msg
-
-    def send(self, method, param):
-        data = {'msgid': 123, 'method': method, 'params': param, 'mode': self.mode}
-        netutils.send(self.stream, data)
-        # msg = msgpack.packb(data)
-        # msg = struct.pack('>I', len(msg)) + msg
-        # self.socket.sendall(msg)
-
     def close(self):
-        self.stream.close()
+        if not self.stream.closed():
+            self.stream.close()
+
+
+def msgid_generator():
+    counter = 0
+    while True:
+        yield counter
+        counter += 1
+        if counter > (1 << 30):
+            counter = 0
+
+generator = msgid_generator()
+
+
+def cb1(data):
+    print 'cb1:', data
 
 if __name__ == '__main__':
-    def callback(data):
-        print data
-    client = Client()
-    client.connection()
-    client.send('sum', [1, 2])
-    client.recv(callback)
-    ioloop.IOLoop.current().start()
-    client.close()
 
-    while True:
-        pass
+    def cb2(data):
+        print 'cb2:', data
+    # client.connect('127.0.0.1', 8000)
+
+    for i in xrange(10000):
+        ts = time.time()
+        client = Client()
+        client.connect('127.0.0.1', 8000)
+        client.call('sum', [i, i+1], cb1)
+        te = time.time()
+        print te-ts
+
+    IOLoop.current().start()
+    # client.start()

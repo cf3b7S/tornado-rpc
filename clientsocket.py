@@ -5,46 +5,55 @@ from tornado import gen
 from tornado.ioloop import IOLoop
 import time
 import os
+import resource
+resource.setrlimit(resource.RLIMIT_NOFILE, (10000, 10000))
 
 
 class Client():
-    def __init__(self):
+    def __init__(self, host, port):
         self.tcpClient = tcpclient.TCPClient()
         self.mode = config.SYNC_MODE
-
-    @gen.coroutine
-    def _connect(self):
-        self.stream = yield self.tcpClient.connect(self.host, self.port)
-
-    def connect(self, host, port):
         self.host = host
         self.port = port
-        IOLoop.current().run_sync(self._connect)
+
+    # @gen.coroutine
+    # def _connect(self):
+    #     self.stream = yield self.tcpClient.connect(self.host, self.port)
+
+    # def connect(self, host, port):
+    #     self.host = host
+    #     self.port = port
+    #     IOLoop.current().run_sync(self._connect)
+
+    @gen.coroutine
+    def _connect(self, cb):
+        stream = yield self.tcpClient.connect(self.host, self.port)
+        cb(stream)
 
     def call(self, method_name, params, cb):
-        msg = {
-            'msgid': next(generator),
-            'method': method_name,
-            'params': params,
-            'mode': self.mode
-        }
-        print 'send msgid:', msg['msgid'], os.getpid()
-        netutils.send(self.stream, msg)
+        def call_async(stream):
+            # print 'connect cb'
+            msg = {
+                'msgid': next(generator),
+                'method': method_name,
+                'params': params,
+                'mode': self.mode
+            }
+            # print 'send msgid:', msg['msgid'], os.getpid()
 
-        def recv_cb(data):
-            self.stream.close()
-            cb(data)
-        netutils.recv(self.stream, recv_cb)
+            def recv_cb(data):
+                # print 'send cb'
+                stream.close()
+                cb(data)
+
+            netutils.send(stream, msg, callback=lambda: netutils.recv(stream, recv_cb))
+        self._connect(call_async)
 
     def set_sync(self):
         self.mode = config.SYNC_MODE
 
     def set_async(self):
         self.mode = config.ASYNC_MODE
-
-    def close(self):
-        if not self.stream.closed():
-            self.stream.close()
 
 
 def msgid_generator():
@@ -57,18 +66,27 @@ def msgid_generator():
 
 generator = msgid_generator()
 
+# -----------------------
+start = time.time()
+
 
 def cb1(data):
-    print 'cb1:', data
+    # print 'cb1:', data
+    end = time.time()
+    print end - start
+    pass
+    # print 'cb1:', data
 
 
 def test():
-    start = time.time()
-    for i in xrange(10000):
+    # start = time.time()
+    for i in xrange(3000):
         # ts = time.time()
-        client = Client()
-        client.set_async()
-        client.connect('127.0.0.1', 8000)
+        # print 'before client'
+        client = Client('127.0.0.1', 8000)
+        # client.set_async()
+        # client.connect('127.0.0.1', 8000)
+        # print 'before call'
         client.call('sum', [i, i+1], cb1)
         # data = client.call('sum', [i, i+1])
         # print data

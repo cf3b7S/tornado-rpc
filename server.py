@@ -4,7 +4,9 @@ from tornado.ioloop import IOLoop
 from tornado import tcpserver
 import config
 import netutils
-import os
+# import os
+import resource
+resource.setrlimit(resource.RLIMIT_NOFILE, (10000, 10000))
 
 
 class TCPServer(tcpserver.TCPServer):
@@ -25,12 +27,12 @@ class Server():
         self.port = port
         self.tcp_server.bind(self.port)
 
-    def start(self, process=2):
+    def start(self, process=1):
         self.process = process
         self.tcp_server.start(process)
 
     def handle_stream(self, stream, address):
-        print 'handle_stream'
+        # print 'handle_stream'
         netutils.recv(stream, callback=lambda data: self.handle_line(data, stream))
         # stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))]
 
@@ -40,7 +42,7 @@ class Server():
         mode = data['mode']
         method = data['method']
         params = data['params']
-        print 'handle_line:', msgid, os.getpid()
+        # print 'handle_line:', msgid, os.getpid()
         result = {
             'msgid': msgid,
             'result': None,
@@ -93,7 +95,7 @@ class Server():
 if __name__ == '__main__':
     class Handler(object):
         def sum(self, a, b):
-            print 'sum', a, b, a + b
+            # print 'sum', a, b, a + b
             return a + b
 
     server = Server(Handler())

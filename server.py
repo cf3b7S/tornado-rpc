@@ -4,6 +4,9 @@ from tornado.ioloop import IOLoop
 from tornado import tcpserver
 import config
 import netutils
+# import os
+import resource
+resource.setrlimit(resource.RLIMIT_NOFILE, (10000, 10000))
 
 
 class TCPServer(tcpserver.TCPServer):
@@ -24,7 +27,7 @@ class Server():
         self.port = port
         self.tcp_server.bind(self.port)
 
-    def start(self, process=2):
+    def start(self, process=1):
         self.process = process
         self.tcp_server.start(process)
 
@@ -76,7 +79,7 @@ if __name__ == '__main__':
             return a + b
 
         def multi(self, a, b):
-            print 'multi', a, b, a + b
+            print 'multi', a, b, a * b
             return a * b
 
     server = Server(Handler())

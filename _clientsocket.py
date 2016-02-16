@@ -1,66 +1,106 @@
-import socket
-import struct
-import config
-import time
 import netutils
-import msgpack
-from tornado import iostream, ioloop
+import config
+from tornado import tcpclient
+from tornado import gen
+from tornado.ioloop import IOLoop
+import time
+import os
+import resource
+resource.setrlimit(resource.RLIMIT_NOFILE, (10000, 10000))
 
-class Client(object):
 
-    def __init__(self, sock=None, io_loop=None, max_buffer_size=None, read_chunk_size=None, max_write_buffer_size=None):
-        if not sock:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream = iostream.IOStream(sock, io_loop, max_buffer_size, read_chunk_size, max_write_buffer_size)
+class Client():
+    def __init__(self, host, port):
+        self.tcpClient = tcpclient.TCPClient()
+        self.mode = config.SYNC_MODE
+        self.host = host
+        self.port = port
+
+    # @gen.coroutine
+    # def _connect(self):
+    #     self.stream = yield self.tcpClient.connect(self.host, self.port)
+
+    # def connect(self, host, port):
+    #     self.host = host
+    #     self.port = port
+    #     IOLoop.current().run_sync(self._connect)
+
+    @gen.coroutine
+    def _connect(self, cb):
+        stream = yield self.tcpClient.connect(self.host, self.port)
+        cb(stream)
+
+    def call(self, method_name, params, cb):
+        def call_async(stream):
+            # print 'connect cb'
+            msg = {
+                'msgid': next(generator),
+                'method': method_name,
+                'params': params,
+                'mode': self.mode
+            }
+            # print 'send msgid:', msg['msgid'], os.getpid()
+
+            def recv_cb(data):
+                # print 'send cb'
+                stream.close()
+                cb(data)
+
+            netutils.send(stream, msg, callback=lambda: netutils.recv(stream, recv_cb))
+        self._connect(call_async)
+
+    def set_sync(self):
         self.mode = config.SYNC_MODE
 
-    def connection(self, host='127.0.0.1', port=8000, callback=None, server_hostname=None):
-        self.stream.connect((host, port))
-
-    def setSync(self):
-        self.mode = config.SYNC_MODE
-
-    def setAsync(self):
+    def set_async(self):
         self.mode = config.ASYNC_MODE
 
-    def recv(self, callback):
-        netutils.recv(self.stream, callback)
-        # raw_msg = self._recv_all(4)
-        # len_msg = struct.unpack('>I', raw_msg)[0]
-        # msg = self._recv_all(len_msg)
-        # data = msgpack.unpackb(msg)
-        # return data
 
-    # def _recv_all(self, length):
-    #     msg = ''
-    #     while len(msg) < length:
-    #         print length - len(msg)
-    #         packet = self.socket.recv(length - len(msg))
-    #         print packet
-    #         # if not packet:
-    #         #     return None
-    #         msg += packet
-    #     return msg
+def msgid_generator():
+    counter = 0
+    while True:
+        yield counter
+        counter += 1
+        if counter > (1 << 30):
+            counter = 0
 
-    def send(self, method, param):
-        data = {'msgid': 123, 'method': method, 'params': param, 'mode': self.mode}
-        netutils.send(self.stream, data)
-        # msg = msgpack.packb(data)
-        # msg = struct.pack('>I', len(msg)) + msg
-        # self.socket.sendall(msg)
+generator = msgid_generator()
 
-    def close(self):
-        self.stream.close()
+# -----------------------
+start = time.time()
+
+
+def cb1(data):
+    # print 'cb1:', data
+    end = time.time()
+    print end - start
+    pass
+    # print 'cb1:', data
+
+
+def test():
+    # start = time.time()
+    for i in xrange(3000):
+        # ts = time.time()
+        # print 'before client'
+        client = Client('127.0.0.1', 8000)
+        # client.set_async()
+        # client.connect('127.0.0.1', 8000)
+        # print 'before call'
+        client.call('sum', [i, i+1], cb1)
+        # data = client.call('sum', [i, i+1])
+        # print data
+        # te = time.time()
+        # print te-ts
+    end = time.time()
+    print end - start
 
 if __name__ == '__main__':
-    def callback(data):
-        print data
-    client = Client()
-    client.connection()
-    client.send('sum', [1, 2])
-    client.recv(callback)
-    ioloop.IOLoop.current().start()
-    client.close()
 
-    while True:
-        pass
+    def cb2(data):
+        print 'cb2:', data
+    # client.connect('127.0.0.1', 8000)
+    test()
+
+    IOLoop.current().start()
+    # client.start()

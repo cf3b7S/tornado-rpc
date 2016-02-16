@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 from functools import partial
-from tornado.ioloop import IOLoop
 from tornado import tcpserver
+from tornado.ioloop import IOLoop
+
 import config
 import netutils
-# import os
-import resource
-resource.setrlimit(resource.RLIMIT_NOFILE, (10000, 10000))
 
 
 class TCPServer(tcpserver.TCPServer):
@@ -26,14 +24,16 @@ class Server():
     def bind(self, port=8000):
         self.port = port
         self.tcp_server.bind(self.port)
+        return self
 
     def start(self, process=1):
         self.process = process
         self.tcp_server.start(process)
+        return self
 
     def handle_stream(self, stream, address):
-        # netutils.recv(stream, cb=lambda data: self.handle_line(data, stream))
-        netutils.recv_until_close(stream, cb=lambda data: self.handle_line(data, stream))
+        netutils.recv(stream, cb=lambda data: self.handle_line(data, stream))
+        # netutils.recv_until_close(stream, cb=lambda data: self.handle_line(data, stream))
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
@@ -83,6 +83,5 @@ if __name__ == '__main__':
             return a * b
 
     server = Server(Handler())
-    server.bind()
-    server.start()
+    server.bind().start()
     IOLoop.current().start()

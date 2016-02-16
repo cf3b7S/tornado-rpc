@@ -2,7 +2,6 @@
 rpc base on tornado tcp server. It's encodend in msgpack.
 
 
-
 reference:
 
 [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC)
@@ -10,6 +9,6 @@ reference:
 
 TODO:
 
-remove length check
-
 add test for muliti client
+
+sending msg without closing socket

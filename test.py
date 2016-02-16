@@ -22,3 +22,15 @@ if __name__ == '__main__':
     # client.start()
 
     IOLoop.current().start()
+    # def cb2(data):
+    #     print 'cb2:', data
+    # # client.connect('127.0.0.1', 8000)
+
+    # for i in xrange(10000):
+    #     ts = time.time()
+    #     client = Client()
+    #     client.connect('127.0.0.1', 8000)
+    #     client.call('sum', [i, i+1], cb1)
+    #     te = time.time()
+    #     print te-ts
+    # client.start()

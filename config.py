@@ -1,25 +1,44 @@
 # mode
 CALL_MODE = 0
-NOTI_MODE = 1
+NOTI_MODE = 1  # notify mode will not wait for result
 
-SYNC_MODE = 0
-ASYNC_MODE = 1
+# SYNC_MODE = 0
+# ASYNC_MODE = 1
 
 
 # res code
-SUCCESS = [200, 'Done']
-UNPACK_ERROR = [300, 'msgpack unpack error']
-MSGID_MISS = [301, 'msgid not found']
-METHOD_MISS = [302, 'method not found']
-PARAMS_MISS = [303, 'params not found']
-MODE_MISS = [304, 'mode not found']
-
-METHOD_INVALID = [305, 'method invalid']
-MODE_INVALID = [306, 'mode invalid']
-
+SUCCESS = 'Done'
+UNPACK_ERROR = {
+    'code': 300,
+    'msg': 'msgpack unpack error'
+}
+ID_MISS = {
+    'code': 301,
+    'msg': 'id not found'
+}
+METHOD_MISS = {
+    'code': 302,
+    'msg': 'method not found'
+}
+PARAMS_MISS = {
+    'code': 303,
+    'msg': 'params not found'
+}
+MODE_MISS = {
+    'code': 304,
+    'msg': 'mode not found'
+}
+METHOD_INVALID = {
+    'code': 305,
+    'msg': 'method invalid'
+}
+MODE_INVALID = {
+    'code': 306,
+    'msg': 'mode invalid'
+}
 
 keyMissMap = {
-    'msgid': MSGID_MISS,
+    'id': ID_MISS,
     'method': METHOD_MISS,
     'params': PARAMS_MISS,
     'mode': MODE_MISS,

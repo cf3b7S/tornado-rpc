@@ -29,23 +29,13 @@ class Server():
         self.tcp_server.start(process)
 
     def handle_stream(self, stream, address):
-        print 'handle_stream'
-        netutils.recv(stream, callback=lambda data: self.handle_line(data, stream))
-        # stream.read_until_close(streaming_callback=lambda data: self.handle_line(data, stream))]
+        # netutils.recv(stream, cb=lambda data: self.handle_line(data, stream))
+        netutils.recv_until_close(stream, cb=lambda data: self.handle_line(data, stream))
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
-        msgid = data['msgid']
-        mode = data['mode']
-        method = data['method']
-        params = data['params']
-        print 'handle_line:', msgid
-        result = {
-            'msgid': msgid,
-            'result': None,
-            'code': None,
-            'msg': None
-        }
+        result = {'id': data.get('id', None)}
+
         # handle key miss error
         key_miss_error = None
         for key in config.keyMissMap:
@@ -54,46 +44,40 @@ class Server():
             if key not in data:
                 key_miss_error = config.keyMissMap[key]
         if key_miss_error:
-            result['code'] = key_miss_error[0]
-            result['msg'] = key_miss_error[1]
+            result['error'] = key_miss_error
             return send_msg(result)
+
+        mode = data['mode']
+        method = data['method']
+        params = data['params']
 
         # handle method invalid
-        if not hasattr(self.handler, data['method']):
-            result['code'] = config.METHOD_INVALID[0]
-            result['msg'] = config.METHOD_INVALID[1]
+        if not hasattr(self.handler, method):
+            result['error'] = config.METHOD_INVALID
             return send_msg(result)
 
-        if mode == config.SYNC_MODE:
-            method_result = getattr(self.handler, method)(*params)
-            result['code'] = config.SUCCESS[0]
-            result['msg'] = config.SUCCESS[1]
-            result['result'] = method_result
-            return send_msg(result)
-        elif mode == config.ASYNC_MODE:
+        if mode == config.CALL_MODE:
+            result['result'] = getattr(self.handler, method)(*params)
+        elif mode == config.NOTI_MODE:
             IOLoop.current().add_callback(getattr(self.handler, method), *params)
-            result['code'] = config.SUCCESS[0]
-            result['msg'] = config.SUCCESS[1]
-            return send_msg(result)
+            result['result'] = config.SUCCESS
         else:
-            result['code'] = config.MODE_INVALID[0]
-            result['msg'] = config.MODE_INVALID[1]
-            return send_msg(result)
-
-    # def send_msg(self, msg, stream, result=None):
-    #     if result:
-    #         msg[1] = result
-    #     stream.write(msgpack.packb(msg))
+            result['error'] = config.MODE_INVALID
+        return send_msg(result)
 
     def send_msg(self, msg, stream):
         netutils.send(stream, msg)
-        netutils.send(stream, msg, lambda: stream.close())
+        # netutils.send(stream, msg, lambda: stream.close())
 
 if __name__ == '__main__':
     class Handler(object):
         def sum(self, a, b):
             print 'sum', a, b, a + b
             return a + b
+
+        def multi(self, a, b):
+            print 'multi', a, b, a + b
+            return a * b
 
     server = Server(Handler())
     server.bind()

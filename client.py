@@ -1,16 +1,25 @@
 # -*- coding: utf-8 -*-
-import netutils
-import config
 from tornado import tcpclient
 from tornado import gen
 from tornado.ioloop import IOLoop
-import time
+
+import config
+import netutils
 
 
 class Client():
     def __init__(self):
         self.tcpClient = tcpclient.TCPClient()
-        self.mode = config.SYNC_MODE
+        self.gen_id = self._gen_id()
+
+    def _gen_id(self):
+        counter = 0
+        COUNTER_MAX = 1 << 30
+        while True:
+            yield counter
+            counter += 1
+            if counter > COUNTER_MAX:
+                counter = 0
 
     @gen.coroutine
     def _connect(self):
@@ -20,62 +29,40 @@ class Client():
         self.host = host
         self.port = port
         IOLoop.current().run_sync(self._connect)
+        return self
         # TODO when connection has been disconnected, connect server
         # self.stream.set_close_callback(lambda: IOLoop.current().run_sync(self._connect))
 
-    def call(self, method_name, params, cb):
+    def _request(self, method, params=[], mode=config.CALL_MODE, cb=None):
         msg = {
-            'msgid': next(generator),
-            'method': method_name,
+            'id': next(self.gen_id),
+            'method': method,
             'params': params,
-            'mode': self.mode
+            'mode': mode,
         }
-        print 'send msgid:', msg['msgid']
         netutils.send(self.stream, msg)
+        netutils.recv(self.stream, cb)
 
-        def recv_cb(data):
-            self.stream.close()
-            cb(data)
-        netutils.recv(self.stream, recv_cb)
+    def call(self, method, params=[], cb=None):
+        self._request(method, params, config.CALL_MODE, cb)
 
-    def setSync(self):
-        self.mode = config.SYNC_MODE
-
-    def setAsync(self):
-        self.mode = config.ASYNC_MODE
+    def notify(self, method, params=[], cb=None):
+        self._request(method, params, config.NOTI_MODE, cb)
 
     def close(self):
         if not self.stream.closed():
             self.stream.close()
+        else:
+            print 'client already closed.'
 
-
-def msgid_generator():
-    counter = 0
-    while True:
-        yield counter
-        counter += 1
-        if counter > (1 << 30):
-            counter = 0
-
-generator = msgid_generator()
-
-
-def cb1(data):
-    print 'cb1:', data
 
 if __name__ == '__main__':
+    def cb(data):
+        print 'sum:', data
 
-    def cb2(data):
-        print 'cb2:', data
-    # client.connect('127.0.0.1', 8000)
-
-    for i in xrange(10000):
-        ts = time.time()
-        client = Client()
-        client.connect('127.0.0.1', 8000)
-        client.call('sum', [i, i+1], cb1)
-        te = time.time()
-        print te-ts
-
+    client = Client()
+    client.connect('127.0.0.1', 8000).call('sum', [123, 456], cb)
+    client.connect('127.0.0.1', 8000).call('multi', [123, 456], cb)
+    client.connect('127.0.0.1', 8000).notify('sum', [123, 456], cb)
+    client.connect('127.0.0.1', 8000).notify('multi', [123, 456], cb)
     IOLoop.current().start()
-    # client.start()

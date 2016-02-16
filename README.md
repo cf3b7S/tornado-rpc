@@ -9,6 +9,10 @@ reference:
 
 TODO:
 
-add test for muliti client
+test for muliti client with multi process server
+
+test speed with json-rpc xml-rpc
+
+gzip
 
 sending msg without closing socket

@@ -71,17 +71,3 @@ class Server():
     def send_msg(self, msg, stream):
         netutils.send(stream, msg)
         # netutils.send(stream, msg, lambda: stream.close())
-
-if __name__ == '__main__':
-    class Handler(object):
-        def sum(self, a, b):
-            print 'sum', a, b, a + b
-            return a + b
-
-        def multi(self, a, b):
-            print 'multi', a, b, a * b
-            return a * b
-
-    server = Server(Handler())
-    server.bind().start()
-    IOLoop.current().start()

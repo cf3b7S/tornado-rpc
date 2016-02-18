@@ -33,6 +33,12 @@ class Client():
         # TODO when connection has been disconnected, connect server
         # self.stream.set_close_callback(lambda: IOLoop.current().run_sync(self._connect))
 
+    def set_host(self, host, port):
+        # only used before call method 'call_async' and 'notify_async'.
+        # before call method 'call' and 'notify' use method 'connect' to set host and port.
+        self.host = host
+        self.port = port
+
     def _request(self, method, params=[], mode=config.CALL_MODE, cb=None):
         msg = {
             'id': next(self.gen_id),
@@ -43,26 +49,45 @@ class Client():
         netutils.send(self.stream, msg)
         netutils.recv(self.stream, cb)
 
+    @gen.coroutine
+    def _connect_async(self, cb=None):
+        self.stream = yield self.tcpClient.connect(self.host, self.port)
+        if cb:
+            cb()
+
+    def _request_async(self, method, params, mode=config.CALL_MODE, cb=None):
+        def send_async():
+            msg = {
+                'id': next(self.gen_id),
+                'method': method,
+                'params': params,
+                'mode': mode
+            }
+
+            def recv_cb(data):
+                # self.close()
+                if cb:
+                    cb(data)
+
+            netutils.send(self.stream, msg, cb=netutils.recv(self.stream, cb))
+        self._connect_async(send_async)
+
+    def call_async(self, method, params=[], cb=None):
+        self._request_async(method, params, mode=config.CALL_MODE, cb=cb)
+
+    def notify_async(self, method, params=[], cb=None):
+        self._request_async(method, params, mode=config.NOTI_MODE, cb=cb)
+
     def call(self, method, params=[], cb=None):
-        self._request(method, params, config.CALL_MODE, cb)
+        self._request(method, params, mode=config.CALL_MODE, cb=cb)
 
     def notify(self, method, params=[], cb=None):
-        self._request(method, params, config.NOTI_MODE, cb)
+        self._request(method, params, mode=config.NOTI_MODE, cb=cb)
 
-    def close(self):
-        if not self.stream.closed():
-            self.stream.close()
-        else:
-            print 'client already closed.'
-
-
-if __name__ == '__main__':
-    def cb(data):
-        print 'sum:', data
-
-    client = Client()
-    client.connect('127.0.0.1', 8000).call('sum', [123, 456], cb)
-    client.connect('127.0.0.1', 8000).call('multi', [123, 456], cb)
-    client.connect('127.0.0.1', 8000).notify('sum', [123, 456], cb)
-    client.connect('127.0.0.1', 8000).notify('multi', [123, 456], cb)
-    IOLoop.current().start()
+    # def close(self):
+    #     # only use this method in method 'call' and 'notify' 's callback method.
+    #     # when use method 'call_async' and 'notify_async', don't need to call this method.
+    #     if not self.stream.closed():
+    #         self.stream.close()
+    #     else:
+    #         print 'client already closed.'

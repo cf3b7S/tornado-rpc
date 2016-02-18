@@ -70,8 +70,8 @@ class Server():
         return send_msg(result)
 
     def send_msg(self, msg, stream):
-        netutils.send(stream, msg)
-        # netutils.send(stream, msg, lambda: stream.close())
+        # netutils.send(stream, msg)
+        netutils.send(stream, msg, lambda: stream.close())
 
 
 if __name__ == '__main__':

@@ -47,7 +47,7 @@ class Client():
             'mode': mode,
         }
         netutils.send(self.stream, msg)
-        netutils.recv(self.stream, cb)
+        netutils.client_recv(self.stream, cb)
 
     @gen.coroutine
     def _connect_async(self, cb=None):
@@ -69,7 +69,7 @@ class Client():
                 if cb:
                     cb(data)
 
-            netutils.send(self.stream, msg, cb=netutils.recv(self.stream, cb))
+            netutils.send(self.stream, msg, cb=netutils.client_recv(self.stream, cb))
         self._connect_async(send_async)
 
     def call_async(self, method, params=[], cb=None):

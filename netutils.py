@@ -21,8 +21,15 @@ def unpack_msg(raw_data, stream, cb=None):
         print >>sys.stderr, "WARNING:", config.UNPACK_ERROR
 
 
-def recv(stream, cb=None):
+def server_recv(stream, cb=None):
     stream.read_until('\n', callback=lambda data: unpack_msg(data, stream, cb))
+
+
+def client_recv(stream, cb=None):
+    def recv_cb(data):
+        stream.close()
+        unpack_msg(data, stream, cb)
+    stream.read_until('\n', callback=recv_cb)
 
 # def recv_until_close(stream, cb=None):
 #     stream.read_until_close(streaming_callback=lambda data: unpack_msg(data, stream, cb))

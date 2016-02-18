@@ -5,6 +5,7 @@ from tornado.ioloop import IOLoop
 
 import config
 import netutils
+import os
 
 
 class TCPServer(tcpserver.TCPServer):
@@ -32,7 +33,7 @@ class Server():
         return self
 
     def handle_stream(self, stream, address):
-        netutils.recv(stream, cb=lambda data: self.handle_line(data, stream))
+        netutils.server_recv(stream, cb=lambda data: self.handle_line(data, stream))
         # netutils.recv_until_close(stream, cb=lambda data: self.handle_line(data, stream))
 
     def handle_line(self, data, stream):
@@ -71,3 +72,16 @@ class Server():
     def send_msg(self, msg, stream):
         netutils.send(stream, msg)
         # netutils.send(stream, msg, lambda: stream.close())
+
+
+if __name__ == '__main__':
+    class Handler(object):
+        def sum(self, a, b):
+            # print 'sum', a, b, a + b, os.getpid()
+            return a + b
+
+    server = Server(Handler())
+    server.bind()
+    server.start(2)
+
+    IOLoop.current().start()

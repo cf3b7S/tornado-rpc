@@ -1,36 +1,39 @@
-from server import Server
+# -*- coding: utf-8 -*-
+# from server import Server
 from client import Client
 import time
 import os
 import logging
+from tornado import gen
 from tornado.ioloop import IOLoop
 import resource
-from multiprocessing import Process
+from tornado import process
+
 
 resource.setrlimit(resource.RLIMIT_NOFILE, (65536, 65536))
+
+muti_flg = True
+all_loop_num = 10000
+process_num = 4
+
+if muti_flg:
+    loop_num = all_loop_num / process_num
+else:
+    loop_num = all_loop_num
 
 ts = 0
 cnt = 0
 
-process_num = 4
-
-muti_flg = False
-if muti_flg:
-    loop_num = 2500
-else:
-    loop_num = 10000
-
 
 def cb_sync(client, data):
-    # print data, 'cb_sync'
+    # print data, 'cb_sync', os.getpid()
     global cnt
     global ts
 
     cnt += 1
-    # print cnt, os.getpid(), 'callback'
     if cnt == loop_num:
         te = time.time()
-        print te - ts
+        print te - ts, os.getpid()
     pass
 
 
@@ -39,67 +42,49 @@ def cb_async(data):
     pass
 
 
-def test_sync_call():
-    client = Client()
-    client.connect('127.0.0.1', 8000)
-    client.call('sum', [0, 1], cb=lambda data: cb_sync(client, data))
+@gen.coroutine
+def test_sync_call(client, i):
+    data = yield client.call('sum', [0, i])
+    cb_sync(client, data)
 
 
-def test_sync_notify():
-    client = Client()
-    client.connect('127.0.0.1', 8000)
-    client.notify('sum', [3, 4], cb=lambda data: cb_sync(client, data))
+@gen.coroutine
+def test_sync_notify(client, i):
+    data = yield client.notify('sum', [0, i])
+    cb_sync(client, data)
 
 
-def test_async_call():
-    client = Client()
-    client.set_host('127.0.0.1', 8000)
-    client.call_async('sum', [5, 6], cb=cb_async)
-    # client.call_async('sum', [5, 6], cb=cb_async)
-
-
-def test_async_notify():
-    client = Client()
-    client.set_host('127.0.0.1', 8000)
-    client.call_async('sum', [5, 6], cb=cb_async)
-
-
-def multi_test_sync_call():
+@gen.coroutine
+def multi_test():
     print "start", time.time() - ts
+    client = Client()
+    client.connect('127.0.0.1', 8000)
+
     for i in xrange(loop_num):
         # print i, os.getpid()
-        test_sync_call()
-    IOLoop.current().start()
+        # yield test_sync_call(client, i)
+        yield test_sync_notify(client, i)
 
 
 def muti_process_test():
     global ts
     ts = time.time()
 
-    for j in xrange(process_num):
-        p = Process(target=multi_test_sync_call)
-        p.start()
+    process.fork_processes(process_num)
+    multi_test()
 
 
+@gen.coroutine
 def singal_process_test():
     global ts
     ts = time.time()
+    client = Client()
+    client.connect('127.0.0.1', 8000)
 
     for i in xrange(loop_num):
-        # 2process 7.21562886238 10000
-        test_sync_call()
+        # yield test_sync_call(client, i)
+        yield test_sync_notify(client, i)
 
-        # 2process 7.70088887215 10000
-        # test_sync_notify()
-
-        # 2process 0.0398619174957 100
-        # test_async_call()
-
-        # test_async_notify()
-        # te = time.time()
-        # all_time += te - ts
-        # print te - ts
-    IOLoop.current().start()
 
 if __name__ == '__main__':
     if not logging.getLogger().handlers:
@@ -119,3 +104,4 @@ if __name__ == '__main__':
     else:
         singal_process_test()
 
+    IOLoop.current().start()

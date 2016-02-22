@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+from tornado import gen
 from tornado import tcpserver
 from tornado.ioloop import IOLoop
 
@@ -31,9 +32,11 @@ class Server():
         self.tcp_server.start(process)
         return self
 
+    @gen.coroutine
     def handle_stream(self, stream, address):
-        netutils.server_recv(stream, cb=lambda data: self.handle_line(data, stream))
-        # netutils.recv_until_close(stream, cb=lambda data: self.handle_line(data, stream))
+        while True:
+            data = yield netutils.recv(stream)
+            self.handle_line(data, stream)
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
@@ -69,8 +72,7 @@ class Server():
         return send_msg(result)
 
     def send_msg(self, msg, stream):
-        # netutils.send(stream, msg)
-        netutils.send(stream, msg, lambda: stream.close())
+        netutils.send(stream, msg)
 
 
 if __name__ == '__main__':
@@ -81,6 +83,6 @@ if __name__ == '__main__':
 
     server = Server(Handler())
     server.bind()
-    server.start(2)
+    server.start(1)
 
     IOLoop.current().start()

@@ -2,34 +2,28 @@
 import sys
 import msgpack
 
+from tornado import gen
 import config
 
-
-def send(stream, data, cb=None):
-    msg = msgpack.packb(data) + '\n'
-    stream.write(msg, cb)
+separator = '\r\n\r\r\n\n'
 
 
-def unpack_msg(raw_data, stream, cb=None):
+@gen.coroutine
+def send(stream, data):
+    msg = msgpack.packb(data) + separator
+    yield stream.write(msg)
+
+
+def unpack_msg(raw_data, stream):
     try:
-        data = msgpack.unpackb(raw_data[:-1])
-        if cb:
-            cb(data)
-        # stream.close()
+        data = msgpack.unpackb(raw_data[:-6])
     except:
         send(stream, {'error': config.UNPACK_ERROR})
         print >>sys.stderr, "WARNING:", config.UNPACK_ERROR
+    return data
 
 
-def server_recv(stream, cb=None):
-    stream.read_until('\n', callback=lambda data: unpack_msg(data, stream, cb))
-
-
-def client_recv(stream, cb=None):
-    def recv_cb(data):
-        stream.close()
-        unpack_msg(data, stream, cb)
-    stream.read_until('\n', callback=recv_cb)
-
-# def recv_until_close(stream, cb=None):
-#     stream.read_until_close(streaming_callback=lambda data: unpack_msg(data, stream, cb))
+@gen.coroutine
+def recv(stream):
+    data = yield stream.read_until(separator)
+    raise gen.Return(unpack_msg(data, stream))

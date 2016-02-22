@@ -16,3 +16,7 @@ test speed with json-rpc xml-rpc msgpack-rpc
 gzip
 
 sending msg without closing socket
+
+number type in trainsport data can not over 14336819792394
+
+StreamClosedError

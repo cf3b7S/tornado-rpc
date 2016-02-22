@@ -5,7 +5,6 @@ from tornado.ioloop import IOLoop
 
 import config
 import netutils
-import os
 
 
 class TCPServer(tcpserver.TCPServer):

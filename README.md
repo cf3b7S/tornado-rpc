@@ -11,7 +11,7 @@ TODO:
 
 test for muliti client with multi process server
 
-test speed with json-rpc xml-rpc
+test speed with json-rpc xml-rpc msgpack-rpc
 
 gzip
 

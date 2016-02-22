@@ -6,14 +6,10 @@ import os
 import logging
 from tornado import gen
 from tornado.ioloop import IOLoop
-import resource
 from tornado import process
 
-
-resource.setrlimit(resource.RLIMIT_NOFILE, (65536, 65536))
-
-muti_flg = True
-all_loop_num = 10000
+muti_flg = False
+all_loop_num = 100000
 process_num = 4
 
 if muti_flg:

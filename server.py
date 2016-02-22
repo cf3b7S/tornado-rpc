@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from functools import partial
-from tornado import gen
-from tornado import tcpserver
+from tornado import gen, tcpserver
 from tornado.ioloop import IOLoop
+from tornado.iostream import StreamClosedError
 
 import config
 import netutils
@@ -35,8 +35,11 @@ class Server():
     @gen.coroutine
     def handle_stream(self, stream, address):
         while True:
-            data = yield netutils.recv(stream)
-            self.handle_line(data, stream)
+            try:
+                data = yield netutils.recv(stream)
+                self.handle_line(data, stream)
+            except StreamClosedError:
+                break
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)

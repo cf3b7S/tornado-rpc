@@ -2,6 +2,7 @@
 from tornado import tcpclient
 from tornado import gen
 from tornado.ioloop import IOLoop
+from functools import partial
 
 import config
 import netutils
@@ -11,6 +12,8 @@ class Client():
     def __init__(self):
         self.tcpClient = tcpclient.TCPClient()
         self.gen_id = self._gen_id()
+        self.call = partial(self._request, mode=config.CALL_MODE)
+        self.notify = partial(self._request, mode=config.NOTI_MODE)
 
     def _gen_id(self):
         counter = 0
@@ -41,18 +44,8 @@ class Client():
             'params': params,
             'mode': mode,
         }
-        yield netutils.send(self.stream, msg)
+        yield netutils.send(msg, self.stream)
         data = yield netutils.recv(self.stream)
-        raise gen.Return(data)
-
-    @gen.coroutine
-    def call(self, method, params=[]):
-        data = yield self._request(method, params=params, mode=config.CALL_MODE)
-        raise gen.Return(data)
-
-    @gen.coroutine
-    def notify(self, method, params=[]):
-        data = yield self._request(method, params=params, mode=config.NOTI_MODE)
         raise gen.Return(data)
 
 

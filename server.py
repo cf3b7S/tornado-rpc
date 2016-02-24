@@ -42,7 +42,7 @@ class Server():
                 break
 
     def handle_line(self, data, stream):
-        send_msg = partial(self.send_msg, stream=stream)
+        send_msg = partial(netutils.send, stream=stream)
         result = {'id': data.get('id', None)}
 
         # handle key miss error
@@ -74,14 +74,11 @@ class Server():
             result['error'] = config.MODE_INVALID
         return send_msg(result)
 
-    def send_msg(self, msg, stream):
-        netutils.send(stream, msg)
-
 
 if __name__ == '__main__':
     class Handler(object):
         def sum(self, a, b):
-            # print 'sum', a, b, a + b, os.getpid()
+            # print 'sum', a, b, a + b
             return a + b
 
     server = Server(Handler())

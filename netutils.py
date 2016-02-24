@@ -9,7 +9,7 @@ separator = '\r\n\r\r\n\n'
 
 
 @gen.coroutine
-def send(stream, data):
+def send(data, stream):
     msg = msgpack.packb(data) + separator
     yield stream.write(msg)
 

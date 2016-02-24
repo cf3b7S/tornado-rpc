@@ -13,6 +13,8 @@ TODO:
 
 gzip
 
+reconnect
+
 try to fast than msgpack-rpc-python
 
 client add thread poll

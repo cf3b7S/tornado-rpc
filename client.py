@@ -33,11 +33,12 @@ class Client():
         self.port = port
         IOLoop.current().run_sync(self._connect)
         return self
-        # TODO when connection has been disconnected, connect server
-        # self.stream.set_close_callback(lambda: IOLoop.current().run_sync(self._connect))
 
     @gen.coroutine
     def _request(self, method, params=[], mode=config.CALL_MODE):
+        if self.stream.closed():
+            # when connection has been disconnected, connect server
+            yield self._connect()
         msg = {
             'id': next(self.gen_id),
             'method': method,
@@ -47,6 +48,12 @@ class Client():
         yield netutils.send(msg, self.stream)
         data = yield netutils.recv(self.stream)
         raise gen.Return(data)
+
+    def close(self):
+        if not self.stream.closed():
+            self.stream.close()
+        else:
+            print 'client already closed.'
 
 
 if __name__ == '__main__':

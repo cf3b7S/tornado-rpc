@@ -6,15 +6,15 @@ reference:
 
 [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC)
 
+int type in trainsport data can not over 14336819792394
+
 
 TODO:
 
-test for muliti client with multi process server
-
-test speed with json-rpc xml-rpc msgpack-rpc
-
 gzip
 
-sending msg without closing socket
+try to fast than msgpack-rpc-python
 
-number type in trainsport data can not over 14336819792394
+client add thread poll
+
+add pure text transform

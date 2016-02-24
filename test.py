@@ -9,8 +9,8 @@ from tornado.ioloop import IOLoop
 from tornado import process
 
 muti_flg = False
-all_loop_num = 100000
-process_num = 4
+all_loop_num = 1000000
+process_num = 100
 
 if muti_flg:
     loop_num = all_loop_num / process_num
@@ -19,7 +19,8 @@ else:
 
 ts = 0
 cnt = 0
-
+host = '192.168.8.189'
+port = 8000
 
 def cb_sync(client, data):
     # print data, 'cb_sync', os.getpid()
@@ -52,9 +53,9 @@ def test_sync_notify(client, i):
 
 @gen.coroutine
 def multi_test():
-    print "start", time.time() - ts
+    # print "start", time.time() - ts
     client = Client()
-    client.connect('127.0.0.1', 8000)
+    client.connect(host, port)
 
     for i in xrange(loop_num):
         # print i, os.getpid()
@@ -75,11 +76,11 @@ def singal_process_test():
     global ts
     ts = time.time()
     client = Client()
-    client.connect('127.0.0.1', 8000)
+    client.connect(host, port)
 
     for i in xrange(loop_num):
-        # yield test_sync_call(client, i)
-        yield test_sync_notify(client, i)
+        yield test_sync_call(client, i)
+        # yield test_sync_notify(client, i)
 
 
 if __name__ == '__main__':

@@ -34,25 +34,19 @@ class Client():
         # self.stream.set_close_callback(lambda: IOLoop.current().run_sync(self._connect))
 
     @gen.coroutine
-    def _request(self, method, params=[], mode=config.CALL_MODE):
-        msg = {
-            'id': next(self.gen_id),
-            'method': method,
-            'params': params,
-            'mode': mode,
-        }
+    def _request(self, msg, mode=config.CALL_MODE):
         yield netutils.send(self.stream, msg)
         data = yield netutils.recv(self.stream)
         raise gen.Return(data)
 
     @gen.coroutine
-    def call(self, method, params=[]):
-        data = yield self._request(method, params=params, mode=config.CALL_MODE)
+    def call(self, msg):
+        data = yield self._request(msg, mode=config.CALL_MODE)
         raise gen.Return(data)
 
     @gen.coroutine
-    def notify(self, method, params=[]):
-        data = yield self._request(method, params=params, mode=config.NOTI_MODE)
+    def notify(self, msg):
+        data = yield self._request(msg, mode=config.NOTI_MODE)
         raise gen.Return(data)
 
 

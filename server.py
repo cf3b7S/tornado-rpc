@@ -18,8 +18,7 @@ class TCPServer(tcpserver.TCPServer):
 
 
 class Server():
-    def __init__(self, handler):
-        self.handler = handler
+    def __init__(self):
         self.tcp_server = TCPServer(self.handle_stream)
 
     def bind(self, port=8000):
@@ -43,48 +42,15 @@ class Server():
 
     def handle_line(self, data, stream):
         send_msg = partial(self.send_msg, stream=stream)
-        result = {'id': data.get('id', None)}
-
-        # handle key miss error
-        key_miss_error = None
-        for key in config.keyMissMap:
-            if key_miss_error:
-                break
-            if key not in data:
-                key_miss_error = config.keyMissMap[key]
-        if key_miss_error:
-            result['error'] = key_miss_error
-            return send_msg(result)
-
-        mode = data['mode']
-        method = data['method']
-        params = data['params']
-
-        # handle method invalid
-        if not hasattr(self.handler, method):
-            result['error'] = config.METHOD_INVALID
-            return send_msg(result)
-
-        if mode == config.CALL_MODE:
-            result['result'] = getattr(self.handler, method)(*params)
-        elif mode == config.NOTI_MODE:
-            IOLoop.current().add_callback(getattr(self.handler, method), *params)
-            result['result'] = config.SUCCESS
-        else:
-            result['error'] = config.MODE_INVALID
-        return send_msg(result)
+        return send_msg(data)
 
     def send_msg(self, msg, stream):
         netutils.send(stream, msg)
 
 
 if __name__ == '__main__':
-    class Handler(object):
-        def sum(self, a, b):
-            # print 'sum', a, b, a + b, os.getpid()
-            return a + b
 
-    server = Server(Handler())
+    server = Server()
     server.bind()
     server.start(1)
 

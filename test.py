@@ -19,7 +19,8 @@ else:
 
 ts = 0
 cnt = 0
-host = '192.168.8.189'
+# host = '192.168.8.189'
+host = '127.0.0.1'
 port = 8000
 
 def cb_sync(client, data):
@@ -41,13 +42,13 @@ def cb_async(data):
 
 @gen.coroutine
 def test_sync_call(client, i):
-    data = yield client.call('sum', [0, i])
+    data = yield client.call('hello')
     cb_sync(client, data)
 
 
 @gen.coroutine
 def test_sync_notify(client, i):
-    data = yield client.notify('sum', [0, i])
+    data = yield client.notify('hello')
     cb_sync(client, data)
 
 

@@ -10,8 +10,8 @@ separator = '\r\n\r\r\n\n'
 
 @gen.coroutine
 def send(stream, data):
-    msg = msgpack.packb(data) + separator
-    yield stream.write(msg)
+    # msg = msgpack.packb(data) + separator
+    yield stream.write(data + separator)
 
 
 def unpack_msg(raw_data, stream):
@@ -26,4 +26,5 @@ def unpack_msg(raw_data, stream):
 @gen.coroutine
 def recv(stream):
     data = yield stream.read_until(separator)
-    raise gen.Return(unpack_msg(data, stream))
+    raise gen.Return(data)
+    # raise gen.Return(unpack_msg(data, stream))
